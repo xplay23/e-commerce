@@ -1,2 +1,78 @@
-<script setup lang="ts">import{onMounted,ref}from'vue';import{ArrowRight}from'lucide-vue-next';import ProductGrid from '@/components/product/ProductGrid.vue';import BaseEmptyState from '@/components/ui/BaseEmptyState.vue';import{getFeaturedProducts}from'@/services/products';import type{Product}from'@/types';const products=ref<Product[]>([]),loading=ref(true),error=ref('');onMounted(async()=>{try{products.value=await getFeaturedProducts(4)}catch(e){error.value=e instanceof Error?e.message:'Could not load featured products'}finally{loading.value=false}})</script>
-<template><section class="hero"><img src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=2200&q=88" alt="Calm modern workspace"><div class="hero__content container"><p class="eyebrow">Edition 01 · 2026</p><h1>Less, but<br><em>considered.</em></h1><p>Objects that earn their place.<br>Quietly functional, made to last.</p><RouterLink to="/catalog" class="text-link">Explore the collection <ArrowRight :size="17"/></RouterLink></div></section><section class="section container"><header class="section-heading"><div><p class="eyebrow">Selected objects</p><h2>Made for the<br>everyday.</h2></div><RouterLink to="/catalog" class="text-link">Shop all <ArrowRight :size="17"/></RouterLink></header><p v-if="error" class="alert">{{error}}</p><ProductGrid :products="products" :loading="loading"/><BaseEmptyState v-if="!loading&&!error&&!products.length" title="The edit is coming soon" text="There are no featured products in the collection yet."/></section><section class="manifesto"><div class="container"><p class="eyebrow">Our approach</p><blockquote>We believe the objects around us should be <em>useful, honest,</em> and quietly beautiful.</blockquote><RouterLink to="/about" class="text-link">Read our story <ArrowRight :size="17"/></RouterLink></div></section><section class="category-feature container"><div class="category-feature__image"><img src="https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1400&q=85" alt="Minimal living room"/></div><div><p class="eyebrow">The living edit</p><h2>Space to<br><em>breathe.</em></h2><p>A study in warmth, texture, and objects that invite a slower pace.</p><RouterLink to="/catalog?category=living" class="text-link">Discover living <ArrowRight :size="17"/></RouterLink></div></section></template>
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
+import { ArrowRight } from 'lucide-vue-next'
+import ProductGrid from '@/components/product/ProductGrid.vue'
+import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
+import { getFeaturedProducts } from '@/services/products'
+import type { Product } from '@/types'
+const products = ref<Product[]>([]),
+  loading = ref(true),
+  error = ref('')
+onMounted(async () => {
+  try {
+    products.value = await getFeaturedProducts(4)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Could not load featured products'
+  } finally {
+    loading.value = false
+  }
+})
+</script>
+<template>
+  <section class="hero">
+    <img
+      src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=2200&q=88"
+      alt="Calm modern workspace"
+    />
+    <div class="hero__content container">
+      <p class="eyebrow">Edition 01 · 2026</p>
+      <h1>Less, but<br /><em>considered.</em></h1>
+      <p>Objects that earn their place.<br />Quietly functional, made to last.</p>
+      <RouterLink to="/catalog" class="text-link"
+        >Explore the collection <ArrowRight :size="17"
+      /></RouterLink>
+    </div>
+  </section>
+  <section class="section container">
+    <header class="section-heading">
+      <div>
+        <p class="eyebrow">Selected objects</p>
+        <h2>Made for the<br />everyday.</h2>
+      </div>
+      <RouterLink to="/catalog" class="text-link">Shop all <ArrowRight :size="17" /></RouterLink>
+    </header>
+    <p v-if="error" class="alert">{{ error }}</p>
+    <ProductGrid :products="products" :loading="loading" /><BaseEmptyState
+      v-if="!loading && !error && !products.length"
+      title="The edit is coming soon"
+      text="There are no featured products in the collection yet."
+    />
+  </section>
+  <section class="manifesto">
+    <div class="container">
+      <p class="eyebrow">Our approach</p>
+      <blockquote>
+        We believe the objects around us should be <em>useful, honest,</em> and quietly beautiful.
+      </blockquote>
+      <RouterLink to="/about" class="text-link"
+        >Read our story <ArrowRight :size="17"
+      /></RouterLink>
+    </div>
+  </section>
+  <section class="category-feature container">
+    <div class="category-feature__image">
+      <img
+        src="https://images.unsplash.com/photo-1494438639946-1ebd1d20bf85?auto=format&fit=crop&w=1400&q=85"
+        alt="Minimal living room"
+      />
+    </div>
+    <div>
+      <p class="eyebrow">The living edit</p>
+      <h2>Space to<br /><em>breathe.</em></h2>
+      <p>A study in warmth, texture, and objects that invite a slower pace.</p>
+      <RouterLink to="/catalog?category=living" class="text-link"
+        >Discover living <ArrowRight :size="17"
+      /></RouterLink>
+    </div>
+  </section>
+</template>

@@ -1,2 +1,106 @@
-<script setup lang="ts">import{onMounted,ref,watch}from'vue';import{useRoute,useRouter}from'vue-router';import{Heart,Truck,RotateCcw}from'lucide-vue-next';import{getProduct}from'@/services/products';import type{Product}from'@/types';import PriceDisplay from'@/components/product/PriceDisplay.vue';import QuantitySelector from'@/components/cart/QuantitySelector.vue';import BaseButton from'@/components/ui/BaseButton.vue';import BaseEmptyState from'@/components/ui/BaseEmptyState.vue';import{useCartStore}from'@/stores/cart';import{useToastStore}from'@/stores/toast';import{useAuthStore}from'@/stores/auth';import{useFavoritesStore}from'@/stores/favorites';const route=useRoute(),router=useRouter(),product=ref<Product|null>(null),loading=ref(true),error=ref(''),quantity=ref(1),cart=useCartStore(),toast=useToastStore(),auth=useAuthStore(),favorites=useFavoritesStore();async function load(){loading.value=true;try{product.value=await getProduct(String(route.params.slug));if(auth.user)await favorites.fetchAll(auth.user.id)}catch(e){error.value=e instanceof Error?e.message:'Unable to load this object'}finally{loading.value=false}}function add(){if(product.value){cart.add(product.value,quantity.value);toast.show(`${product.value.name} added to bag`)}}async function toggleFavorite(){if(!product.value)return;if(!auth.user){toast.show('Sign in to save favorites','error');await router.push({name:'login',query:{redirect:route.fullPath}});return}try{await favorites.toggle(auth.user.id,product.value);toast.show(favorites.has(product.value.id)?'Saved to favorites':'Removed from favorites')}catch(e){toast.show(e instanceof Error?e.message:'Could not update favorites','error')}}onMounted(load);watch(()=>route.params.slug,load)</script>
-<template><div v-if="loading" class="page-loader">Loading object…</div><div v-else-if="error" class="container alert">{{error}}</div><BaseEmptyState v-else-if="!product" title="Object not found" text="This piece may no longer be part of the collection."><RouterLink class="button button--dark" to="/catalog">Back to shop</RouterLink></BaseEmptyState><div v-else class="product-page container"><div class="gallery"><img :src="product.image_url||'/placeholder.svg'" :alt="product.name"><img v-for="image in product.images" :key="image.id" :src="image.url" :alt="product.name"></div><section class="product-info"><p class="eyebrow">{{product.category?.name}} · NORD</p><h1>{{product.name}}</h1><PriceDisplay :price="product.price" :old-price="product.old_price"/><p class="lead">{{product.short_description}}</p><p>{{product.description}}</p><p :class="['availability',{'out':!product.stock}]">{{product.stock?`In stock · ${product.stock} available`:'Currently unavailable'}}</p><div class="buy-row"><QuantitySelector v-model="quantity" :max="product.stock"/><BaseButton :disabled="!product.stock" @click="add">Add to bag — {{product.price*quantity}} USD</BaseButton><button class="icon-button" :class="{active:favorites.has(product.id)}" :aria-label="favorites.has(product.id)?'Remove from favorites':'Add to favorites'" @click="toggleFavorite"><Heart :fill="favorites.has(product.id)?'currentColor':'none'"/></button></div><div class="benefits"><span><Truck/> Complimentary shipping over $200</span><span><RotateCcw/> 30-day considered returns</span></div></section></div></template>
+<script setup lang="ts">
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { Heart, Truck, RotateCcw } from 'lucide-vue-next'
+import { getProduct } from '@/services/products'
+import type { Product } from '@/types'
+import PriceDisplay from '@/components/product/PriceDisplay.vue'
+import QuantitySelector from '@/components/cart/QuantitySelector.vue'
+import BaseButton from '@/components/ui/BaseButton.vue'
+import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
+import { useCartStore } from '@/stores/cart'
+import { useToastStore } from '@/stores/toast'
+import { useAuthStore } from '@/stores/auth'
+import { useFavoritesStore } from '@/stores/favorites'
+const route = useRoute(),
+  router = useRouter(),
+  product = ref<Product | null>(null),
+  loading = ref(true),
+  error = ref(''),
+  quantity = ref(1),
+  cart = useCartStore(),
+  toast = useToastStore(),
+  auth = useAuthStore(),
+  favorites = useFavoritesStore()
+async function load() {
+  loading.value = true
+  try {
+    product.value = await getProduct(String(route.params.slug))
+    if (auth.user) await favorites.fetchAll(auth.user.id)
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : 'Unable to load this object'
+  } finally {
+    loading.value = false
+  }
+}
+function add() {
+  if (product.value) {
+    cart.add(product.value, quantity.value)
+    toast.show(`${product.value.name} added to bag`)
+  }
+}
+async function toggleFavorite() {
+  if (!product.value) return
+  if (!auth.user) {
+    toast.show('Sign in to save favorites', 'error')
+    await router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  try {
+    await favorites.toggle(auth.user.id, product.value)
+    toast.show(favorites.has(product.value.id) ? 'Saved to favorites' : 'Removed from favorites')
+  } catch (e) {
+    toast.show(e instanceof Error ? e.message : 'Could not update favorites', 'error')
+  }
+}
+onMounted(load)
+watch(() => route.params.slug, load)
+</script>
+<template>
+  <div v-if="loading" class="page-loader">Loading object…</div>
+  <div v-else-if="error" class="container alert">{{ error }}</div>
+  <BaseEmptyState
+    v-else-if="!product"
+    title="Object not found"
+    text="This piece may no longer be part of the collection."
+    ><RouterLink class="button button--dark" to="/catalog">Back to shop</RouterLink></BaseEmptyState
+  >
+  <div v-else class="product-page container">
+    <div class="gallery">
+      <img :src="product.image_url || '/placeholder.svg'" :alt="product.name" /><img
+        v-for="image in product.images"
+        :key="image.id"
+        :src="image.url"
+        :alt="product.name"
+      />
+    </div>
+    <section class="product-info">
+      <p class="eyebrow">{{ product.category?.name }} · NORD</p>
+      <h1>{{ product.name }}</h1>
+      <PriceDisplay :price="product.price" :old-price="product.old_price" />
+      <p class="lead">{{ product.short_description }}</p>
+      <p>{{ product.description }}</p>
+      <p :class="['availability', { out: !product.stock }]">
+        {{ product.stock ? `In stock · ${product.stock} available` : 'Currently unavailable' }}
+      </p>
+      <div class="buy-row">
+        <QuantitySelector v-model="quantity" :max="product.stock" /><BaseButton
+          :disabled="!product.stock"
+          @click="add"
+          >Add to bag — {{ product.price * quantity }} USD</BaseButton
+        ><button
+          class="icon-button"
+          :class="{ active: favorites.has(product.id) }"
+          :aria-label="favorites.has(product.id) ? 'Remove from favorites' : 'Add to favorites'"
+          @click="toggleFavorite"
+        >
+          <Heart :fill="favorites.has(product.id) ? 'currentColor' : 'none'" />
+        </button>
+      </div>
+      <div class="benefits">
+        <span><Truck /> Complimentary shipping over $200</span
+        ><span><RotateCcw /> 30-day considered returns</span>
+      </div>
+    </section>
+  </div>
+</template>

@@ -1,1 +1,17 @@
-<script setup lang="ts">defineProps<{page:number;pages:number}>();defineEmits<{change:[number]}>()</script><template><nav v-if="pages>1" class="pagination" aria-label="Pagination"><button :disabled="page===1" @click="$emit('change',page-1)">←</button><button v-for="n in pages" :key="n" :class="{active:n===page}" @click="$emit('change',n)">{{String(n).padStart(2,'0')}}</button><button :disabled="page===pages" @click="$emit('change',page+1)">→</button></nav></template>
+<script setup lang="ts">
+defineProps<{ page: number; pages: number }>()
+defineEmits<{ change: [number] }>()
+</script>
+<template>
+  <nav v-if="pages > 1" class="pagination" aria-label="Pagination">
+    <button :disabled="page === 1" @click="$emit('change', page - 1)">←</button
+    ><button
+      v-for="n in pages"
+      :key="n"
+      :class="{ active: n === page }"
+      @click="$emit('change', n)"
+    >
+      {{ String(n).padStart(2, '0') }}</button
+    ><button :disabled="page === pages" @click="$emit('change', page + 1)">→</button>
+  </nav>
+</template>

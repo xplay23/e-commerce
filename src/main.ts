@@ -1,1 +1,13 @@
-import{createApp}from'vue';import{createPinia}from'pinia';import App from'./App.vue';import router from'./router';import'./assets/scss/main.scss';import{useAuthStore}from'./stores/auth';const app=createApp(App),pinia=createPinia();app.use(pinia);app.use(router);useAuthStore().init().finally(()=>app.mount('#app'))
+import { createApp } from 'vue'
+import { createPinia } from 'pinia'
+import App from './App.vue'
+import router from './router'
+import './assets/scss/main.scss'
+import { useAuthStore } from './stores/auth'
+const app = createApp(App),
+  pinia = createPinia()
+app.use(pinia)
+app.use(router)
+useAuthStore()
+  .init()
+  .finally(() => app.mount('#app'))

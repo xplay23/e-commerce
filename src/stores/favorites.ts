@@ -21,8 +21,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     error.value = ''
     try {
       const rows = await getFavorites()
-      products.value = rows.flatMap(row => row.product ? [row.product] : [])
-      productIds.value = new Set(rows.map(row => row.product_id))
+      products.value = rows.flatMap((row) => (row.product ? [row.product] : []))
+      productIds.value = new Set(rows.map((row) => row.product_id))
       loadedForUser.value = userId
     } catch (reason) {
       error.value = reason instanceof Error ? reason.message : 'Could not load favorites'
@@ -37,7 +37,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     productIds.value = new Set(productIds.value)
     if (wasFavorite) {
       productIds.value.delete(product.id)
-      products.value = products.value.filter(item => item.id !== product.id)
+      products.value = products.value.filter((item) => item.id !== product.id)
     } else {
       productIds.value.add(product.id)
       products.value.unshift(product)
@@ -52,7 +52,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
         products.value.unshift(product)
       } else {
         productIds.value.delete(product.id)
-        products.value = products.value.filter(item => item.id !== product.id)
+        products.value = products.value.filter((item) => item.id !== product.id)
       }
       productIds.value = new Set(productIds.value)
       throw reason
