@@ -141,3 +141,78 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+.env.local
+.env.*.local
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local environment and secrets
+# Keep only the empty, documented template in Git.
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+service-account*.json
+
+# Supabase CLI local state and credentials
+# Migrations, seed.sql and config.toml remain versioned.
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+supabase/.env.local
+supabase/.env.*.local
+supabase/.wrangler/
+
+# Production build and tool caches
+dist/
+.vite/
+.cache/
+.parcel-cache/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+
+# Local databases, dumps and temporary backups
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.dump
+*.backup
+*.bak
+*.tmp
+*.temp
+
+# Editors and operating-system metadata
+.idea/
+.vscode/
+*.code-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Test and browser artifacts
+playwright-report/
+test-results/
+blob-report/
+.playwright/
+
+# Local Supabase function dependencies
+supabase/functions/**/node_modules/
+supabase/functions/**/.deno/
