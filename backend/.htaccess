@@ -1,0 +1,6 @@
+Options -Indexes
+RewriteEngine On
+
+# Only the API directory is intended to be reachable over HTTP.
+RewriteRule ^(?:src|database)/ - [F,L,NC]
+RewriteRule ^(?:\.env|\.env\..*|router\.php|README\.md)$ - [F,L,NC]

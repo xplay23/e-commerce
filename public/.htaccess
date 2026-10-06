@@ -1,6 +1,6 @@
 Options -MultiViews
 RewriteEngine On
-RewriteBase /e-commerce-vue/dist/
+RewriteBase /e-commerce-vue/
 
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d

@@ -1,6 +1,6 @@
 const defaultApiUrl = import.meta.env.DEV
   ? 'http://localhost:8080/api'
-  : `${window.location.origin}/e-commerce-vue/backend/public/api`
+  : `${window.location.origin}/e-commerce-vue/backend/api`
 const API_URL = (import.meta.env.VITE_API_URL || defaultApiUrl).replace(/\/$/, '')
 const TOKEN_KEY = 'nord-auth-token'
 

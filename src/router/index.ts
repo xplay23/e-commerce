@@ -12,7 +12,7 @@ import AdminProductsPage from '@/pages/AdminProductsPage.vue'
 import SimplePage from '@/pages/SimplePage.vue'
 import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
-  history: createWebHistory('/e-commerce-vue/dist/'),
+  history: createWebHistory('/e-commerce-vue/'),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     {

@@ -21,7 +21,7 @@ $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $requestPath = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/');
 
 // The API can be deployed in a subdirectory (for example
-// /e-commerce-vue/backend/public/api). Keep only the part after /api so route
+// /e-commerce-vue/backend/api). Keep only the part after /api so route
 // matching does not depend on the domain or deployment directory.
 $apiPosition = strpos('/' . $requestPath . '/', '/api/');
 $path = $apiPosition === false

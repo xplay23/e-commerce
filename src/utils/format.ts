@@ -10,6 +10,4 @@ export const formatDate = (value: string) =>
   new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(value))
 export const clamp = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value))
-export const placeholderImage = import.meta.env.DEV
-  ? '/placeholder.svg'
-  : `${window.location.origin}/e-commerce-vue/dist/placeholder.svg`
+export const placeholderImage = `${import.meta.env.BASE_URL}placeholder.svg`
