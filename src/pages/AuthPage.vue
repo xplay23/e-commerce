@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useAuthStore } from '@/stores/auth'
-import { isSupabaseConfigured } from '@/lib/supabase'
 const route = useRoute(),
   router = useRouter(),
   auth = useAuthStore(),
@@ -19,10 +18,6 @@ async function submit() {
   error.value = ''
   if (register.value && password.value !== confirm.value) {
     error.value = 'Passwords do not match'
-    return
-  }
-  if (!isSupabaseConfigured) {
-    error.value = 'Connect Supabase in .env.local to use authentication.'
     return
   }
   busy.value = true

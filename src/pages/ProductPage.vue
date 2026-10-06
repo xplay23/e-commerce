@@ -12,6 +12,7 @@ import { useCartStore } from '@/stores/cart'
 import { useToastStore } from '@/stores/toast'
 import { useAuthStore } from '@/stores/auth'
 import { useFavoritesStore } from '@/stores/favorites'
+import { placeholderImage } from '@/utils/format'
 const route = useRoute(),
   router = useRouter(),
   product = ref<Product | null>(null),
@@ -67,7 +68,7 @@ watch(() => route.params.slug, load)
   >
   <div v-else class="product-page container">
     <div class="gallery">
-      <img :src="product.image_url || '/placeholder.svg'" :alt="product.name" /><img
+      <img :src="product.image_url || placeholderImage" :alt="product.name" /><img
         v-for="image in product.images"
         :key="image.id"
         :src="image.url"

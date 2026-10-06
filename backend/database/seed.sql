@@ -1,6 +1,7 @@
--- A small curated catalog for the storefront. Safe to re-run because slugs are unique.
+USE nord_store;
+
 INSERT INTO
-  public.categories (name, slug, description)
+  categories (name, slug, description)
 VALUES
   ('Audio', 'audio', 'Sound, without the noise.'),
   (
@@ -15,13 +16,12 @@ VALUES
     'wellness',
     'Small rituals, considered.'
   )
-ON CONFLICT (slug) DO UPDATE
-SET
-  name = excluded.name,
-  description = excluded.description;
+ON DUPLICATE KEY UPDATE
+  name = values(name),
+  description = values(description);
 
 INSERT INTO
-  public.products (
+  products (
     category_id,
     name,
     slug,
@@ -40,7 +40,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'audio'
     ),
@@ -60,7 +60,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'workspace'
     ),
@@ -80,7 +80,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'audio'
     ),
@@ -100,7 +100,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'wellness'
     ),
@@ -120,7 +120,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'travel'
     ),
@@ -140,7 +140,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'living'
     ),
@@ -160,7 +160,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'workspace'
     ),
@@ -180,7 +180,7 @@ VALUES
       SELECT
         id
       FROM
-        public.categories
+        categories
       WHERE
         slug = 'living'
     ),
@@ -195,16 +195,28 @@ VALUES
     TRUE,
     FALSE
   )
-ON CONFLICT (slug) DO UPDATE
-SET
-  category_id = excluded.category_id,
-  name = excluded.name,
-  description = excluded.description,
-  short_description = excluded.short_description,
-  price = excluded.price,
-  old_price = excluded.old_price,
-  stock = excluded.stock,
-  image_url = excluded.image_url,
-  is_active = excluded.is_active,
-  is_featured = excluded.is_featured,
-  updated_at = now();
+ON DUPLICATE KEY UPDATE
+  category_id = values(category_id),
+  name = values(name),
+  description = values(description),
+  short_description = values(short_description),
+  price = values(price),
+  old_price = values(old_price),
+  stock = values(stock),
+  image_url = values(image_url),
+  is_active = values(is_active),
+  is_featured = values(is_featured);
+
+-- Password: password (change it immediately outside local development).
+INSERT INTO
+  users (name, email, password_hash, role)
+VALUES
+  (
+    'NORD Admin',
+    'admin@nord.test',
+    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
+    'admin'
+  )
+ON DUPLICATE KEY UPDATE
+  name = values(name),
+  role = 'admin';

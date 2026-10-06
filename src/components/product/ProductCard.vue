@@ -8,6 +8,7 @@ import { useCartStore } from '@/stores/cart'
 import { useToastStore } from '@/stores/toast'
 import { useAuthStore } from '@/stores/auth'
 import { useFavoritesStore } from '@/stores/favorites'
+import { placeholderImage } from '@/utils/format'
 const props = defineProps<{ product: Product }>(),
   cart = useCartStore(),
   toast = useToastStore(),
@@ -39,7 +40,7 @@ onMounted(() => {
 <template>
   <article class="product-card">
     <RouterLink :to="`/product/${product.slug}`" class="product-card__image"
-      ><img :src="product.image_url || '/placeholder.svg'" :alt="product.name" /><span
+      ><img :src="product.image_url || placeholderImage" :alt="product.name" /><span
         v-if="product.old_price"
         class="pill"
         >Sale</span

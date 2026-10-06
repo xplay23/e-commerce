@@ -1,49 +1,60 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { Session, User } from '@supabase/supabase-js'
-import { isSupabaseConfigured, supabase } from '@/lib/supabase'
-import type { Profile } from '@/types'
+import { ApiError, api, tokenStorage } from '@/lib/api'
+import type { AuthUser, Profile } from '@/types'
+
+type AuthResponse = { token: string; user: AuthUser }
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null),
-    session = ref<Session | null>(null),
-    profile = ref<Profile | null>(null),
-    loading = ref(true)
-  async function fetchProfile() {
-    if (!user.value) return
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.value.id)
-      .maybeSingle()
-    profile.value = data as unknown as Profile | null
+  const user = ref<AuthUser | null>(null)
+  const profile = ref<Profile | null>(null)
+  const loading = ref(true)
+
+  function setUser(value: AuthUser | null) {
+    user.value = value
+    profile.value = value
   }
+
   async function init() {
-    if (!isSupabaseConfigured) {
+    if (!tokenStorage.get()) {
       loading.value = false
       return
     }
-    const { data } = await supabase.auth.getSession()
-    session.value = data.session
-    user.value = data.session?.user ?? null
-    if (user.value) await fetchProfile()
-    supabase.auth.onAuthStateChange((_e, s) => {
-      session.value = s
-      user.value = s?.user ?? null
-      void fetchProfile()
-    })
-    loading.value = false
+    try {
+      setUser(await api<AuthUser>('auth/me'))
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) tokenStorage.clear()
+    } finally {
+      loading.value = false
+    }
   }
+
   async function login(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
+    const result = await api<AuthResponse>('auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    })
+    tokenStorage.set(result.token)
+    setUser(result.user)
   }
+
   async function register(name: string, email: string, password: string) {
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { name } } })
-    if (error) throw error
+    const result = await api<AuthResponse>('auth/register', {
+      method: 'POST',
+      body: JSON.stringify({ name, email, password }),
+    })
+    tokenStorage.set(result.token)
+    setUser(result.user)
   }
+
   async function logout() {
-    await supabase.auth.signOut()
-    profile.value = null
+    try {
+      await api('auth/logout', { method: 'POST' })
+    } finally {
+      tokenStorage.clear()
+      setUser(null)
+    }
   }
-  return { user, session, profile, loading, init, login, register, logout }
+
+  return { user, profile, loading, init, login, register, logout }
 })

@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import BaseInput from '@/components/ui/BaseInput.vue'
 import BaseButton from '@/components/ui/BaseButton.vue'
 import { useCartStore } from '@/stores/cart'
-import { isSupabaseConfigured, supabase } from '@/lib/supabase'
+import { api } from '@/lib/api'
 const cart = useCartStore(),
   router = useRouter(),
   form = reactive({ name: '', email: '', phone: '', address: '', city: '', comment: '' }),
@@ -17,23 +17,21 @@ async function submit() {
   }
   busy.value = true
   try {
-    let id: string = crypto.randomUUID()
-    if (isSupabaseConfigured) {
-      const { data, error: e } = (await supabase.rpc(
-        'create_order' as never,
-        {
-          customer_name: form.name,
-          customer_email: form.email,
-          customer_phone: form.phone,
-          shipping_address: form.address,
-          shipping_city: form.city,
-          order_comment: form.comment,
-          cart_items: cart.items.map((i) => ({ product_id: i.product.id, quantity: i.quantity })),
-        } as never,
-      )) as unknown as { data: string | null; error: { message: string } | null }
-      if (e) throw new Error(e.message)
-      id = data ?? id
-    }
+    const { id } = await api<{ id: string }>('orders', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer_name: form.name,
+        customer_email: form.email,
+        customer_phone: form.phone,
+        address: form.address,
+        city: form.city,
+        comment: form.comment,
+        items: cart.items.map((item) => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+        })),
+      }),
+    })
     cart.clear()
     await router.push(`/order-success/${id}`)
   } catch (e) {

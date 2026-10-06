@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 960" role="img" aria-labelledby="title description">
+  <title id="title">NORD product image placeholder</title>
+  <desc id="description">A neutral placeholder shown when a product has no image.</desc>
+  <rect width="800" height="960" fill="#e7e4dc"/>
+  <text x="400" y="480" text-anchor="middle" dominant-baseline="middle" fill="#6f716b" font-family="Arial, sans-serif" font-size="42" letter-spacing="14">NORD</text>
+</svg>

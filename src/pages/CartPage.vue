@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next'
 import { useCartStore } from '@/stores/cart'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, placeholderImage } from '@/utils/format'
 import QuantitySelector from '@/components/cart/QuantitySelector.vue'
 import BaseEmptyState from '@/components/ui/BaseEmptyState.vue'
 const cart = useCartStore()
@@ -23,7 +23,7 @@ const cart = useCartStore()
     <div v-else class="cart-layout">
       <div class="cart-list">
         <article v-for="item in cart.items" :key="item.product.id">
-          <img :src="item.product.image_url || '/placeholder.svg'" />
+          <img :src="item.product.image_url || placeholderImage" />
           <div>
             <p class="eyebrow">{{ item.product.category?.name }}</p>
             <h3>{{ item.product.name }}</h3>

@@ -38,6 +38,10 @@ export type Profile = {
   role: 'customer' | 'admin'
   created_at: string
 }
+export type AuthUser = Profile & {
+  name: string
+  email: string
+}
 export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled'
 export type Order = {
   id: string

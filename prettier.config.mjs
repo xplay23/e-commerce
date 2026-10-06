@@ -12,4 +12,10 @@ export default {
   dataTypeCase: 'lower',
   functionCase: 'lower',
   linesBetweenQueries: 1,
+  overrides: [
+    {
+      files: 'backend/database/*.sql',
+      options: { language: 'mysql' },
+    },
+  ],
 }

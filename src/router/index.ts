@@ -8,10 +8,11 @@ import AuthPage from '@/pages/AuthPage.vue'
 import AccountPage from '@/pages/AccountPage.vue'
 import FavoritesPage from '@/pages/FavoritesPage.vue'
 import CheckoutPage from '@/pages/CheckoutPage.vue'
+import AdminProductsPage from '@/pages/AdminProductsPage.vue'
 import SimplePage from '@/pages/SimplePage.vue'
 import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/e-commerce-vue/dist/'),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     {
@@ -41,10 +42,9 @@ const router = createRouter({
         { path: 'about', name: 'about', component: SimplePage },
         {
           path: 'admin',
-          alias: ['/admin/products', '/admin/categories', '/admin/orders'],
+          alias: ['/admin/products'],
           name: 'admin',
-          component: SimplePage,
-          props: { kind: 'admin' },
+          component: AdminProductsPage,
           meta: { auth: true, admin: true },
         },
       ],

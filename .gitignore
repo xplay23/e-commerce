@@ -216,3 +216,8 @@ blob-report/
 # Local Supabase function dependencies
 supabase/functions/**/node_modules/
 supabase/functions/**/.deno/
+
+# PHP backend local configuration and runtime files
+backend/.env
+backend/storage/
+backend/public/uploads/
