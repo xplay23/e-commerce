@@ -156,7 +156,7 @@ dism.exe /online /enable-feature /featurename:Microsoft-Windows-Subsystem-Linux 
 HTTPS-сертификатом. Caddy на этом VPS не запускается.
 Параметры размещения без секретов записаны в [.hostinger/site.json](.hostinger/site.json).
 
-Исходники текущего релиза: `/opt/nord/releases/2b3eb4189e8bf296`.
+Исходники текущего релиза: `/opt/nord/releases/37df780defeb5d7c`.
 Compose: `/docker/nord/docker-compose.yml`. MySQL хранит данные в постоянном
 томе `nord_mysql_data`; порт базы не опубликован. В базе находятся
 15 категорий и 108 товаров (включая 100 тестовых ламп), пользователей и заказов нет.
