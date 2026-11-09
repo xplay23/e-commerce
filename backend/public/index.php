@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 require dirname(__DIR__) . '/src/bootstrap.php';
 
+header('X-Robots-Tag: noindex, nofollow, noarchive, nosnippet');
+
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $allowedOrigin = env('FRONTEND_URL', 'http://localhost:5173');
 if ($origin === $allowedOrigin) {
     header("Access-Control-Allow-Origin: {$allowedOrigin}");
+    header('Access-Control-Allow-Credentials: true');
 }
 header('Vary: Origin');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Headers: Content-Type, X-CSRF-Token');
 header('Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS');
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
     http_response_code(204);
@@ -20,9 +23,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') {
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 $requestPath = trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH), '/');
 
-// The API can be deployed in a subdirectory (for example
-// /e-commerce-vue/backend/api). Keep only the part after /api so route
-// matching does not depend on the domain or deployment directory.
+// Keep the route after /api; the frontend and API share the same origin.
 $apiPosition = strpos('/' . $requestPath . '/', '/api/');
 $path = $apiPosition === false
     ? $requestPath
@@ -31,9 +32,22 @@ $path = trim($path, '/');
 $segments = $path === '' ? [] : explode('/', $path);
 
 try {
+    appUrl();
+    appKey();
+    protectMutation();
+    if (!in_array($method, ['GET', 'HEAD', 'OPTIONS'], true)) rateLimit('api-write-ip', clientIp(), 120, 60);
+    handleAuth($method, $path);
     if ($method === 'GET' && $path === 'health') {
         db()->query('SELECT 1');
         jsonResponse(['status' => 'ok']);
+    }
+
+    if (($path === 'chat/status' && $method === 'GET') || ($path === 'chat' && $method === 'POST')) {
+        require dirname(__DIR__) . '/src/chat.php';
+        if ($method === 'GET') jsonResponse(['available' => chatConfigured()]);
+        rateLimit('chat-ip', clientIp(), 15, 60);
+        rateLimit('chat-daily', clientIp(), 200, 86400);
+        jsonResponse(chatAnswer(input()));
     }
 
     if ($method === 'GET' && $path === 'categories') {
@@ -48,20 +62,20 @@ try {
         if ($path === 'products/featured') $where[] = 'p.is_featured = 1';
         if (!empty($_GET['category'])) {
             $where[] = 'c.slug = ?';
-            $params[] = $_GET['category'];
+            $params[] = textField($_GET, 'category', 1, 140);
         }
         if (!empty($_GET['search'])) {
             $where[] = '(p.name LIKE ? OR p.description LIKE ?)';
-            $term = '%' . $_GET['search'] . '%';
+            $term = '%' . textField($_GET, 'search', 1, 200) . '%';
             array_push($params, $term, $term);
         }
         if (isset($_GET['minPrice']) && $_GET['minPrice'] !== '') {
             $where[] = 'p.price >= ?';
-            $params[] = (float) $_GET['minPrice'];
+            $params[] = moneyField($_GET['minPrice']);
         }
         if (isset($_GET['maxPrice']) && $_GET['maxPrice'] !== '') {
             $where[] = 'p.price <= ?';
-            $params[] = (float) $_GET['maxPrice'];
+            $params[] = moneyField($_GET['maxPrice']);
         }
         if (($_GET['inStock'] ?? '') === 'true') $where[] = 'p.stock > 0';
 
@@ -72,9 +86,11 @@ try {
             'name_asc' => 'p.name ASC',
             'name_desc' => 'p.name DESC',
         ];
-        $order = $sorts[$_GET['sort'] ?? 'newest'] ?? $sorts['newest'];
-        $page = max(1, (int) ($_GET['page'] ?? 1));
-        $limit = $path === 'products/featured' ? min(12, max(1, (int) ($_GET['limit'] ?? 4))) : 12;
+        $sort = isset($_GET['sort']) ? textField($_GET, 'sort', 1, 30) : 'newest';
+        if (!isset($sorts[$sort])) throw new HttpError('Invalid sort order', 422);
+        $order = $sorts[$sort];
+        $page = integerValue($_GET['page'] ?? '1', 1, 10000);
+        $limit = $path === 'products/featured' ? integerValue($_GET['limit'] ?? '4', 1, 12) : 12;
         $offset = ($page - 1) * $limit;
         $whereSql = implode(' AND ', $where);
 
@@ -104,49 +120,6 @@ try {
         jsonResponse(productFromRow($row));
     }
 
-    if ($method === 'POST' && $path === 'auth/register') {
-        $data = input();
-        if (!filter_var($data['email'] ?? '', FILTER_VALIDATE_EMAIL) || strlen((string) ($data['password'] ?? '')) < 8 || trim((string) ($data['name'] ?? '')) === '') {
-            jsonResponse(['message' => 'Provide a name, valid email and password of at least 8 characters'], 422);
-        }
-        $statement = db()->prepare('INSERT INTO users(name,email,password_hash) VALUES(?,?,?)');
-        try {
-            $statement->execute([trim($data['name']), strtolower(trim($data['email'])), password_hash($data['password'], PASSWORD_DEFAULT)]);
-        } catch (PDOException $exception) {
-            if ((int) $exception->errorInfo[1] === 1062) jsonResponse(['message' => 'Email is already registered'], 409);
-            throw $exception;
-        }
-        $id = (int) db()->lastInsertId();
-        $user = ['id' => (string) $id, 'name' => trim($data['name']), 'email' => strtolower(trim($data['email'])), 'phone' => null, 'role' => 'customer'];
-        jsonResponse(['token' => issueToken($id), 'user' => $user], 201);
-    }
-
-    if ($method === 'POST' && $path === 'auth/login') {
-        $data = input();
-        $statement = db()->prepare('SELECT * FROM users WHERE email=? LIMIT 1');
-        $statement->execute([strtolower(trim((string) ($data['email'] ?? '')))]);
-        $user = $statement->fetch();
-        if (!$user || !password_verify((string) ($data['password'] ?? ''), $user['password_hash'])) {
-            jsonResponse(['message' => 'Invalid email or password'], 401);
-        }
-        unset($user['password_hash']);
-        $user['id'] = (string) $user['id'];
-        jsonResponse(['token' => issueToken((int) $user['id']), 'user' => $user]);
-    }
-
-    if ($method === 'GET' && $path === 'auth/me') {
-        $user = currentUser(true);
-        $user['id'] = (string) $user['id'];
-        jsonResponse($user);
-    }
-
-    if ($method === 'POST' && $path === 'auth/logout') {
-        currentUser(true);
-        $statement = db()->prepare('DELETE FROM auth_tokens WHERE token_hash=?');
-        $statement->execute([hash('sha256', (string) bearerToken())]);
-        jsonResponse(['message' => 'Logged out']);
-    }
-
     if ($path === 'favorites') {
         $user = currentUser(true);
         if ($method === 'GET') {
@@ -161,13 +134,18 @@ try {
             jsonResponse(array_map(fn (array $product): array => ['product_id' => $product['id'], 'product' => $product], $products));
         }
         if ($method === 'POST') {
+            rateLimit('favorites-ip', clientIp(), 60, 60);
             $data = input();
+            $productId = positiveId($data['product_id'] ?? null);
+            $find = db()->prepare('SELECT id FROM products WHERE id=? AND is_active=1');
+            $find->execute([$productId]);
+            if (!$find->fetchColumn()) throw new HttpError('Product not found', 404);
             $statement = db()->prepare('INSERT IGNORE INTO favorites(user_id,product_id) VALUES(?,?)');
-            $statement->execute([$user['id'], $data['product_id'] ?? 0]);
+            $statement->execute([$user['id'], $productId]);
             jsonResponse(['message' => 'Favorite added'], 201);
         }
         if ($method === 'DELETE') {
-            $productId = $_GET['product_id'] ?? 0;
+            $productId = positiveId($_GET['product_id'] ?? null);
             $statement = db()->prepare('DELETE FROM favorites WHERE user_id=? AND product_id=?');
             $statement->execute([$user['id'], $productId]);
             jsonResponse(['message' => 'Favorite removed']);
@@ -175,29 +153,33 @@ try {
     }
 
     if ($method === 'POST' && $path === 'orders') {
+        rateLimit('orders-ip', clientIp(), 10, 600);
         $user = currentUser(false);
         $data = input();
-        $items = $data['items'] ?? [];
-        foreach (['customer_name', 'customer_email', 'customer_phone', 'address', 'city'] as $field) {
-            if (trim((string) ($data[$field] ?? '')) === '') jsonResponse(['message' => "Field '{$field}' is required"], 422);
+        $items = orderItems($data['items'] ?? null);
+        $validated = [];
+        foreach (['customer_name' => 120, 'customer_email' => 190, 'customer_phone' => 50, 'address' => 500, 'city' => 120] as $field => $max) {
+            $validated[$field] = textField($data, $field, 1, $max);
         }
-        if (!is_array($items) || count($items) === 0) jsonResponse(['message' => 'Cart is empty'], 422);
+        if (!filter_var($validated['customer_email'], FILTER_VALIDATE_EMAIL)) throw new HttpError('Invalid customer email', 422);
+        $validated['comment'] = textField($data, 'comment', 0, 2000);
         $pdo = db();
         $pdo->beginTransaction();
         try {
             $resolved = [];
-            $total = 0.0;
+            $totalCents = 0;
             $find = $pdo->prepare('SELECT id,name,price,stock FROM products WHERE id=? AND is_active=1 FOR UPDATE');
-            foreach ($items as $item) {
-                $quantity = max(1, (int) ($item['quantity'] ?? 0));
-                $find->execute([$item['product_id'] ?? 0]);
+            foreach ($items as $productId => $quantity) {
+                $find->execute([$productId]);
                 $product = $find->fetch();
-                if (!$product || (int) $product['stock'] < $quantity) throw new RuntimeException('One or more products are unavailable');
-                $total += (float) $product['price'] * $quantity;
+                if (!$product || (int) $product['stock'] < $quantity) throw new HttpError('One or more products are unavailable', 422);
+                $totalCents += moneyCents($product['price']) * $quantity;
+                if ($totalCents > 999999999999) throw new HttpError('Order total is too large', 422);
                 $resolved[] = [$product, $quantity];
             }
             $create = $pdo->prepare('INSERT INTO orders(user_id,customer_name,customer_email,customer_phone,address,city,comment,subtotal,total) VALUES(?,?,?,?,?,?,?,?,?)');
-            $create->execute([$user['id'] ?? null, $data['customer_name'], $data['customer_email'], $data['customer_phone'], $data['address'], $data['city'], $data['comment'] ?? null, $total, $total]);
+            $total = number_format($totalCents / 100, 2, '.', '');
+            $create->execute([$user['id'] ?? null, $validated['customer_name'], $validated['customer_email'], $validated['customer_phone'], $validated['address'], $validated['city'], $validated['comment'] ?: null, $total, $total]);
             $orderId = (int) $pdo->lastInsertId();
             $addItem = $pdo->prepare('INSERT INTO order_items(order_id,product_id,product_name,price,quantity) VALUES(?,?,?,?,?)');
             $decrement = $pdo->prepare('UPDATE products SET stock=stock-? WHERE id=?');
@@ -209,7 +191,7 @@ try {
             jsonResponse(['id' => (string) $orderId], 201);
         } catch (Throwable $exception) {
             $pdo->rollBack();
-            jsonResponse(['message' => $exception instanceof RuntimeException ? $exception->getMessage() : 'Could not create order'], 422);
+            throw $exception;
         }
     }
 
@@ -222,6 +204,7 @@ try {
 
     if (($segments[0] ?? '') === 'admin') {
         requireAdmin();
+        if ($method !== 'GET') rateLimit('admin-write-ip', clientIp(), 60, 60);
         if ($method === 'GET' && $path === 'admin/products') {
             $rows = db()->query('SELECT p.*,c.name category_name,c.slug category_slug FROM products p LEFT JOIN categories c ON c.id=p.category_id ORDER BY p.created_at DESC')->fetchAll();
             jsonResponse(array_map('productFromRow', $rows));
@@ -233,7 +216,7 @@ try {
             jsonResponse(['id' => (string) db()->lastInsertId()], 201);
         }
         if (count($segments) === 3 && $segments[1] === 'products') {
-            $id = (int) $segments[2];
+            $id = positiveId($segments[2]);
             if ($method === 'PUT') {
                 $data = validateProduct(input());
                 $statement = db()->prepare('UPDATE products SET category_id=?,name=?,slug=?,description=?,short_description=?,price=?,old_price=?,stock=?,image_url=?,is_active=?,is_featured=? WHERE id=?');
@@ -249,9 +232,12 @@ try {
     }
 
     jsonResponse(['message' => 'Route not found'], 404);
-} catch (PDOException $exception) {
-    $message = env('APP_ENV') === 'development' ? $exception->getMessage() : 'Database request failed';
-    jsonResponse(['message' => $message], 500);
+} catch (HttpError $exception) {
+    if (db()->inTransaction()) db()->rollBack();
+    jsonResponse(['message' => $exception->getMessage()], $exception->status);
 } catch (Throwable $exception) {
-    jsonResponse(['message' => env('APP_ENV') === 'development' ? $exception->getMessage() : 'Server error'], 500);
+    try { if (db()->inTransaction()) db()->rollBack(); } catch (Throwable) { /* Database unavailable. */ }
+    $reference = bin2hex(random_bytes(8));
+    error_log('Request ' . $reference . ' failed: ' . get_class($exception) . ' code=' . $exception->getCode());
+    jsonResponse(['message' => 'Server error. Reference: ' . $reference], 500);
 }

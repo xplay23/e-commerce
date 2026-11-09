@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppHeader from '@/components/layout/AppHeader.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
+import ChatWidget from '@/components/chat/ChatWidget.vue'
 import { useToastStore } from '@/stores/toast'
 const toast = useToastStore()
 </script>
@@ -8,6 +9,7 @@ const toast = useToastStore()
   <AppHeader />
   <main><RouterView /></main>
   <AppFooter />
+  <ChatWidget />
   <div class="toasts">
     <div v-for="item in toast.items" :key="item.id" :class="`toast toast--${item.kind}`">
       {{ item.message }}

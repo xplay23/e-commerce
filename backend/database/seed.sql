@@ -1,5 +1,3 @@
-USE nord_store;
-
 INSERT INTO
   categories (name, slug, description)
 VALUES
@@ -206,17 +204,3 @@ ON DUPLICATE KEY UPDATE
   image_url = values(image_url),
   is_active = values(is_active),
   is_featured = values(is_featured);
-
--- Password: password (change it immediately outside local development).
-INSERT INTO
-  users (name, email, password_hash, role)
-VALUES
-  (
-    'NORD Admin',
-    'admin@nord.test',
-    '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.',
-    'admin'
-  )
-ON DUPLICATE KEY UPDATE
-  name = values(name),
-  role = 'admin';

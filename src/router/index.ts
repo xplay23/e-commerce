@@ -5,6 +5,7 @@ import CatalogPage from '@/pages/CatalogPage.vue'
 import ProductPage from '@/pages/ProductPage.vue'
 import CartPage from '@/pages/CartPage.vue'
 import AuthPage from '@/pages/AuthPage.vue'
+import SecurityPage from '@/pages/SecurityPage.vue'
 import AccountPage from '@/pages/AccountPage.vue'
 import FavoritesPage from '@/pages/FavoritesPage.vue'
 import CheckoutPage from '@/pages/CheckoutPage.vue'
@@ -12,7 +13,7 @@ import AdminProductsPage from '@/pages/AdminProductsPage.vue'
 import SimplePage from '@/pages/SimplePage.vue'
 import { useAuthStore } from '@/stores/auth'
 const router = createRouter({
-  history: createWebHistory('/e-commerce-vue/'),
+  history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior: () => ({ top: 0 }),
   routes: [
     {
@@ -26,6 +27,13 @@ const router = createRouter({
         { path: 'checkout', name: 'checkout', component: CheckoutPage },
         { path: 'login', name: 'login', component: AuthPage },
         { path: 'register', name: 'register', component: AuthPage },
+        ...[
+          'forgot-password',
+          'reset-password',
+          'resend-verification',
+          'verify-email',
+          'confirm-login',
+        ].map((name) => ({ path: name, name, component: SecurityPage })),
         { path: 'account', name: 'account', component: AccountPage, meta: { auth: true } },
         {
           path: 'account/favorites',

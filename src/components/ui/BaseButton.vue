@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(
   defineProps<{
-    variant?: 'dark' | 'light' | 'ghost'
+    variant?: 'dark' | 'ghost'
     loading?: boolean
     disabled?: boolean
     type?: 'button' | 'submit'

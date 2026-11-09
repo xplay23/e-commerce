@@ -1,0 +1,15 @@
+{
+  "name": "nord/api",
+  "type": "project",
+  "require": {
+    "php": "^8.5",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "ext-openssl": "*",
+    "phpmailer/phpmailer": "^7.0"
+  },
+  "config": {
+    "sort-packages": true,
+    "allow-plugins": false
+  }
+}

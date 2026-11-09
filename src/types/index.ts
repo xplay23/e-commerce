@@ -57,16 +57,6 @@ export type Order = {
   total: number
   created_at: string
   updated_at: string
-  items?: OrderItem[]
-}
-export type OrderItem = {
-  id: string
-  order_id: string
-  product_id: string | null
-  product_name: string
-  price: number
-  quantity: number
-  created_at: string
 }
 export type CartItem = { product: Product; quantity: number }
 export type SortOption = 'newest' | 'price_asc' | 'price_desc' | 'name_asc' | 'name_desc'

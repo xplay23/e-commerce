@@ -1,0 +1,27 @@
+{
+  "provider": "hostinger-vps",
+  "virtualMachineId": 1151611,
+  "hostname": "srv1151611.hstgr.cloud",
+  "ipv4": "72.60.25.131",
+  "projectName": "nord",
+  "type": "docker",
+  "domain": "nord-light.website",
+  "url": "https://nord-light.website",
+  "temporaryDomain": false,
+  "release": "2b3eb4189e8bf296",
+  "sourceDirectory": "/opt/nord/releases/2b3eb4189e8bf296",
+  "composePath": "/docker/nord/docker-compose.yml",
+  "databaseVolume": "nord_mysql_data",
+  "smtpConfigured": true,
+  "chatConfigured": true,
+  "indexingAllowed": false,
+  "validatedOn": "2026-11-09",
+  "checks": {
+    "publicDeployment": 67,
+    "domainHttps": true,
+    "wwwRedirect": 308,
+    "chatOnDomain": true,
+    "resendSmtp": true,
+    "mailWorker": true
+  }
+}

@@ -27,7 +27,7 @@ async function toggleFavorite() {
     return
   }
   try {
-    await favorites.toggle(auth.user.id, props.product)
+    await favorites.toggle(props.product)
     toast.show(favorites.has(props.product.id) ? 'Saved to favorites' : 'Removed from favorites')
   } catch (e) {
     toast.show(e instanceof Error ? e.message : 'Could not update favorites', 'error')

@@ -7,15 +7,9 @@ export default {
   printWidth: 100,
   tabWidth: 2,
   vueIndentScriptAndStyle: false,
-  language: 'postgresql',
+  language: 'mysql',
   keywordCase: 'upper',
   dataTypeCase: 'lower',
   functionCase: 'lower',
   linesBetweenQueries: 1,
-  overrides: [
-    {
-      files: 'backend/database/*.sql',
-      options: { language: 'mysql' },
-    },
-  ],
 }

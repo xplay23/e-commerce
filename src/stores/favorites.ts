@@ -32,7 +32,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
-  async function toggle(userId: string, product: Product) {
+  async function toggle(product: Product) {
     const wasFavorite = has(product.id)
     productIds.value = new Set(productIds.value)
     if (wasFavorite) {
@@ -44,8 +44,8 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
 
     try {
-      if (wasFavorite) await removeFavorite(userId, product.id)
-      else await addFavorite(userId, product.id)
+      if (wasFavorite) await removeFavorite(product.id)
+      else await addFavorite(product.id)
     } catch (reason) {
       if (wasFavorite) {
         productIds.value.add(product.id)
@@ -59,12 +59,5 @@ export const useFavoritesStore = defineStore('favorites', () => {
     }
   }
 
-  function reset() {
-    products.value = []
-    productIds.value = new Set()
-    loadedForUser.value = null
-    error.value = ''
-  }
-
-  return { products, productIds, loading, error, count, has, fetchAll, toggle, reset }
+  return { products, loading, error, count, has, fetchAll, toggle }
 })

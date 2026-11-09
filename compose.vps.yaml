@@ -1,0 +1,43 @@
+# docker compose --env-file .env.docker -f compose.yaml -f compose.vps.yaml up -d --build --wait
+services:
+  backend:
+    environment: &production-environment
+      APP_ENV: production
+      APP_URL: https://${SITE_DOMAIN:?Set SITE_DOMAIN}
+      FRONTEND_URL: https://${SITE_DOMAIN:?Set SITE_DOMAIN}
+      SMTP_HOST: ${SMTP_HOST:?Configure production SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_ENCRYPTION: ${SMTP_ENCRYPTION:-tls}
+      TRUSTED_PROXY_HOST: caddy
+  migrate:
+    environment: *production-environment
+  mail-worker:
+    environment: *production-environment
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?Set SITE_DOMAIN in .env.docker}
+      ACME_EMAIL: ${ACME_EMAIL:?Set ACME_EMAIL in .env.docker}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - ./docker/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      - application
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+volumes:
+  caddy_data:
+  caddy_config:

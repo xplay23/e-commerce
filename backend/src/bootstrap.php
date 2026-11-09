@@ -49,6 +49,7 @@ function db(): PDO
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
+    $pdo->exec("SET time_zone = '+00:00'");
     return $pdo;
 }
 
@@ -56,6 +57,7 @@ function jsonResponse(mixed $data, int $status = 200): never
 {
     http_response_code($status);
     header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     exit;
 }
@@ -66,59 +68,18 @@ function input(): array
     if ($raw === false || $raw === '') {
         return [];
     }
-    $data = json_decode($raw, true);
-    if (!is_array($data)) {
-        jsonResponse(['message' => 'Invalid JSON body'], 400);
+    if (strlen($raw) > 65536) throw new HttpError('Request body is too large', 413);
+    $data = json_decode($raw, true, 32);
+    if (!is_array($data) || !str_starts_with(ltrim($raw), '{')) {
+        throw new HttpError('Invalid JSON object', 400);
     }
     return $data;
 }
 
-function bearerToken(): ?string
-{
-    $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-    return preg_match('/^Bearer\s+(.+)$/i', $header, $matches) ? $matches[1] : null;
-}
-
-function currentUser(bool $required = false): ?array
-{
-    $token = bearerToken();
-    if ($token === null) {
-        if ($required) jsonResponse(['message' => 'Authentication required'], 401);
-        return null;
-    }
-
-    $statement = db()->prepare(
-        'SELECT u.id, u.name, u.email, u.phone, u.role, u.created_at
-         FROM auth_tokens t JOIN users u ON u.id = t.user_id
-         WHERE t.token_hash = ? AND t.expires_at > NOW() LIMIT 1',
-    );
-    $statement->execute([hash('sha256', $token)]);
-    $user = $statement->fetch();
-    if (!$user && $required) jsonResponse(['message' => 'Session expired'], 401);
-    if ($user) $user['id'] = (string) $user['id'];
-    return $user ?: null;
-}
-
-function requireAdmin(): array
-{
-    $user = currentUser(true);
-    if (($user['role'] ?? null) !== 'admin') {
-        jsonResponse(['message' => 'Administrator access required'], 403);
-    }
-    return $user;
-}
-
-function issueToken(int $userId): string
-{
-    $token = bin2hex(random_bytes(32));
-    $days = max(1, (int) env('TOKEN_TTL_DAYS', '30'));
-    $expiresAt = (new DateTimeImmutable())->modify("+{$days} days")->format('Y-m-d H:i:s');
-    $statement = db()->prepare(
-        'INSERT INTO auth_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)',
-    );
-    $statement->execute([$userId, hash('sha256', $token), $expiresAt]);
-    return $token;
-}
+require __DIR__ . '/security.php';
+require __DIR__ . '/validation.php';
+require __DIR__ . '/mail.php';
+require __DIR__ . '/auth.php';
 
 function productFromRow(array $row): array
 {
@@ -146,17 +107,24 @@ function productFromRow(array $row): array
 
 function validateProduct(array $data): array
 {
-    $required = ['name', 'slug', 'description', 'price', 'stock'];
-    foreach ($required as $field) {
-        if (!isset($data[$field]) || $data[$field] === '') {
-            jsonResponse(['message' => "Field '{$field}' is required"], 422);
-        }
+    $slug = textField($data, 'slug', 1, 200);
+    if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/D', $slug)) throw new HttpError('Invalid product slug', 422);
+    $image = textField($data, 'image_url', 0, 2048);
+    if ($image !== '' && (!filter_var($image, FILTER_VALIDATE_URL) || parse_url($image, PHP_URL_SCHEME) !== 'https')) {
+        throw new HttpError('Image URL must use HTTPS', 422);
     }
-    if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', (string) $data['slug'])) {
-        jsonResponse(['message' => 'Slug may contain lowercase letters, numbers and hyphens'], 422);
+    foreach (['is_active', 'is_featured'] as $flag) {
+        if (isset($data[$flag]) && !is_bool($data[$flag])) throw new HttpError("Invalid {$flag}", 422);
     }
-    if ((float) $data['price'] < 0 || (int) $data['stock'] < 0) {
-        jsonResponse(['message' => 'Price and stock cannot be negative'], 422);
-    }
-    return $data;
+    return [
+        'name' => textField($data, 'name', 1, 180), 'slug' => $slug,
+        'description' => textField($data, 'description', 1, 20000),
+        'short_description' => textField($data, 'short_description', 0, 1000) ?: null,
+        'category_id' => empty($data['category_id']) ? null : positiveId($data['category_id']),
+        'price' => moneyField($data['price'] ?? null),
+        'old_price' => ($data['old_price'] ?? '') === '' || $data['old_price'] === null ? null : moneyField($data['old_price']),
+        'stock' => integerValue($data['stock'] ?? null, 0, 2147483647),
+        'image_url' => $image ?: null,
+        'is_active' => $data['is_active'] ?? false, 'is_featured' => $data['is_featured'] ?? false,
+    ];
 }

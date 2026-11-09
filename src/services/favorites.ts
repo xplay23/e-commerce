@@ -7,10 +7,10 @@ export function getFavorites(): Promise<FavoriteRow[]> {
   return api<FavoriteRow[]>('favorites')
 }
 
-export async function addFavorite(_userId: string, productId: string): Promise<void> {
+export async function addFavorite(productId: string): Promise<void> {
   await api('favorites', { method: 'POST', body: JSON.stringify({ product_id: productId }) })
 }
 
-export async function removeFavorite(_userId: string, productId: string): Promise<void> {
+export async function removeFavorite(productId: string): Promise<void> {
   await api(`favorites?product_id=${encodeURIComponent(productId)}`, { method: 'DELETE' })
 }

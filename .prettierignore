@@ -1,7 +1,11 @@
 node_modules/
+backend/vendor/
+backups/
+.secrets/
+.playwright-cli/
 dist/
 coverage/
-supabase/.temp/
 .env*
 !.env.example
+!.env.docker.example
 package-lock.json

@@ -1,0 +1,132 @@
+name: nord
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME:-nord_store}
+      MYSQL_USER: ${DB_USER:-nord}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.docker}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env.docker}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    networks:
+      - database
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP -h 127.0.0.1 -u "$$MYSQL_USER" "$$MYSQL_DATABASE" -e "SELECT 1 FROM users LIMIT 1" >/dev/null 2>&1'
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '3'
+
+  backend:
+    image: ${COMPOSE_PROJECT_NAME:-nord}-backend:local
+    build: &backend-build
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment: &app-environment
+      APP_ENV: production
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      APP_KEY: ${APP_KEY:?Run npm run docker:setup to generate APP_KEY}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8080}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-nord_store}
+      DB_USER: ${DB_USER:-nord}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env.docker}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_ENCRYPTION: ${SMTP_ENCRYPTION:-none}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@nord.test}
+      TRUSTED_PROXY_HOST: ''
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_CHAT_MODEL: ${OPENAI_CHAT_MODEL:-gpt-6-luna}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - application
+      - database
+    healthcheck:
+      test: ['CMD', 'php', '-r', 'require "src/bootstrap.php"; db()->query("SELECT 1");']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *logging
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+
+  migrate:
+    image: ${COMPOSE_PROJECT_NAME:-nord}-backend:local
+    build: *backend-build
+    command: ['php', 'bin/migrate.php']
+    environment: *app-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [database]
+    logging: *logging
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+
+  mail-worker:
+    image: ${COMPOSE_PROJECT_NAME:-nord}-backend:local
+    build: *backend-build
+    command: ['php', 'bin/mail-worker.php']
+    restart: unless-stopped
+    environment: *app-environment
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    networks: [application, database]
+    logging: *logging
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop: [ALL]
+    security_opt: ['no-new-privileges:true']
+
+  web:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    ports:
+      - '${HTTP_BIND:-127.0.0.1}:${HTTP_PORT:-8080}:80'
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - application
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1/api/health']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging: *logging
+
+volumes:
+  mysql_data:
+
+networks:
+  application:
+  database:
+    internal: true

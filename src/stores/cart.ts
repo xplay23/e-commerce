@@ -29,14 +29,6 @@ export const useCartStore = defineStore('cart', () => {
     if (!item) return
     item.quantity = Math.max(1, Math.min(item.product.stock, q))
   }
-  const increment = (id: string) => {
-    const i = items.value.find((x) => x.product.id === id)
-    if (i) setQuantity(id, i.quantity + 1)
-  }
-  const decrement = (id: string) => {
-    const i = items.value.find((x) => x.product.id === id)
-    if (i) i.quantity <= 1 ? remove(id) : setQuantity(id, i.quantity - 1)
-  }
   const clear = () => (items.value = [])
-  return { items, count, subtotal, total, add, remove, setQuantity, increment, decrement, clear }
+  return { items, count, subtotal, total, add, remove, setQuantity, clear }
 })

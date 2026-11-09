@@ -1,7 +1,3 @@
-CREATE DATABASE IF NOT EXISTS nord_store CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
-USE nord_store;
-
 CREATE TABLE categories (
   id bigint UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name varchar(120) NOT NULL,

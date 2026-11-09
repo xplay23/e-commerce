@@ -1,19 +1,54 @@
 # NORD PHP API
 
-Requirements: PHP 8.1+ with `pdo_mysql`, MySQL 8+.
+Основной способ запуска — Docker Compose из корня репозитория.
+Полная инструкция: [README.md](../README.md).
 
 ```bash
-cp backend/.env.example backend/.env
-mysql -u root -p < backend/database/schema.sql
-mysql -u root -p < backend/database/seed.sql
+npm run docker:setup
+npm run docker:up
+docker compose --env-file .env.docker exec backend php bin/seed.php
+docker compose --env-file .env.docker exec backend php bin/create-admin.php admin@example.com
+npm run test:smoke
+```
+
+`seed.php` добавляет только демонстрационный каталог и только в пустую базу товаров.
+`create-admin.php` запрашивает пароль длиной 8–128 символов; существующие аккаунты не меняет.
+
+Для проверки поиска и консультаций агента можно добавить 100 вымышленных ламп
+в 10 отдельных тестовых категориях, в том числе в непустой каталог:
+
+```bash
+npm run db:seed:lamps -- --dry-run
+npm run db:seed:lamps
+```
+
+Команды выполняются из корня проекта и используют локальную базу из
+`compose.yaml` + `compose.local.yaml`. Пересборка текущего образа не требуется.
+
+Все записи помечены как тестовые и имеют артикулы `TEST-LAMP-001`–`TEST-LAMP-100`.
+Цены указаны в USD, как и в остальном каталоге. Характеристики, совместимость
+и ограничения записаны в описаниях и доступны через существующий API поиска.
+Цена и остаток берутся из отдельных полей товара. У 10 моделей нулевой остаток.
+Повторный запуск пропускает существующие slug и не обновляет товары.
+Вставка выполняется в одной транзакции; схема базы не меняется.
+Созданный администратор получает письмо подтверждения email; при входе потребуется ещё одно письмо.
+Локально письма доступны в Mailpit: <http://localhost:8025>.
+Для автоматизации пароль можно передать через `ADMIN_PASSWORD` в окружении процесса CLI.
+Предустановленных пользователей нет.
+
+Без Docker требуются PHP 8.5.12 с `pdo_mysql`, OpenSSL, Argon2id и MySQL 8.4.
+Установите зависимости `composer install` в `backend/`, задайте случайный 32-байтный
+`APP_KEY` в Base64 и подключение SMTP. После создания схемы выполните миграцию.
+Создайте пустую базу и отдельного пользователя, затем настройте `backend/.env`
+по `backend/.env.example`. Выполните схему в выбранной базе:
+
+```bash
+mysql -u nord -p nord_store < backend/database/schema.sql
+php backend/bin/migrate.php
 php -S localhost:8080 -t backend/public backend/router.php
 ```
 
-The development administrator is `admin@nord.test` with password `password`.
-Change this password before exposing the application to a network.
-
-Frontend configuration:
-
-```env
-VITE_API_URL=http://localhost:8080/api
-```
+Встроенный сервер PHP предназначен для разработки; в контейнере используется PHP-FPM.
+`GET /api/health` проверяет соединение с базой. Production-ошибки пишутся в stderr
+контейнера, а клиент получает общее сообщение без реквизитов подключения.
+Почтовую очередь обрабатывает отдельный процесс `php backend/bin/mail-worker.php`.
